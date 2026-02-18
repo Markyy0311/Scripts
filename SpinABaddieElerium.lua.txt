@@ -1,0 +1,783 @@
+-- Use Fluent UI Library (Reliable and Working)
+local Library = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local player = Players.LocalPlayer
+local userId = player.UserId
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
+-- Notification
+Library:Notify({
+    Title = "KYYY HUB",
+    Content = "Welcome " .. player.Name .. "!",
+    Duration = 5
+})
+
+-- Create Window
+local Window = Library:CreateWindow({
+    Title = "MARKYY x KYYY - Roll The Dice",
+    SubTitle = "Made | by Markyy",
+    TabWidth = 130,
+    Size = UDim2.fromOffset(480, 340),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+-- TABS
+local HomeTab       = Window:AddTab({ Title = "Main",          Icon = "home" })
+local DiceTab       = Window:AddTab({ Title = "Dice Shop",     Icon = "box" })
+local PotionsTab    = Window:AddTab({ Title = "Potions",       Icon = "flask" })
+local RebirthTab    = Window:AddTab({ Title = "Rebirth",       Icon = "repeat" })
+local RollingTab    = Window:AddTab({ Title = "Rolling",       Icon = "dice" })
+local MerchantTab   = Window:AddTab({ Title = "Merchant",      Icon = "shopping-cart" })
+local QuestsTab     = Window:AddTab({ Title = "Quests",        Icon = "check-circle" })
+local MiscTab       = Window:AddTab({ Title = "Misc",          Icon = "menu" })
+local MemoryTab     = Window:AddTab({ Title = "Memory",        Icon = "cpu" })
+
+local Options = Library.Options
+
+-- ==================== MEMORY MANAGEMENT SYSTEM ====================
+-- Stable Average Memory Target: Below 2000 MB (2GB)
+
+_G.MemoryOptimizerEnabled = false
+_G.MemoryThresholdMB = 1800 -- Start aggressive cleanup at 1.8GB
+_G.MemoryCriticalMB = 1950 -- Emergency cleanup at 1.95GB
+_G.MemoryCleanupInterval = 10 -- Check every 10 seconds
+_G.LastMemoryUsage = 0
+_G.MemoryTrend = {}
+
+-- Deep cleanup function for instances
+local function DeepCleanupInstances()
+    local count = 0
+    -- Clean up unused instances in workspace
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            -- Remove unnecessary decals/textures
+            for _, child in pairs(obj:GetChildren()) do
+                if child:IsA("Decal") or child:IsA("Texture") then
+                    if child.Transparency < 1 then
+                        child.Transparency = 1
+                        count = count + 1
+                    end
+                elseif child:IsA("ParticleEmitter") or child:IsA("Trail") then
+                    child.Enabled = false
+                    count = count + 1
+                end
+            end
+        elseif obj:IsA("Sound") then
+            if not obj.IsPlaying then
+                obj:Destroy()
+                count = count + 1
+            end
+        elseif obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+            if obj.Enabled then
+                obj.Enabled = false
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
+-- Clean up player characters
+local function CleanupCharacters()
+    local count = 0
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Character then
+            -- Remove unnecessary accessories/effects
+            for _, part in pairs(plr.Character:GetDescendants()) do
+                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Name ~= "Head" and part.Name ~= "Torso" and part.Name ~= "Left Arm" and part.Name ~= "Right Arm" and part.Name ~= "Left Leg" and part.Name ~= "Right Leg" then
+                    if part:FindFirstChildOfClass("ParticleEmitter") then
+                        for _, emitter in pairs(part:GetChildren()) do
+                            if emitter:IsA("ParticleEmitter") or emitter:IsA("Trail") then
+                                emitter.Enabled = false
+                                count = count + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return count
+end
+
+-- Clear unused tables and functions from memory
+local function ClearUnusedReferences()
+    -- Force garbage collection steps
+    for i = 1, 5 do
+        collectgarbage("step")
+    end
+end
+
+-- Memory monitoring and auto-cleanup
+local function CheckAndOptimizeMemory()
+    if not _G.MemoryOptimizerEnabled then return end
+    
+    local currentMemoryKB = gcinfo()
+    local currentMemoryMB = currentMemoryKB / 1024
+    local totalMemoryMB = Stats:GetTotalMemoryUsageMb()
+    
+    _G.LastMemoryUsage = currentMemoryMB
+    
+    -- Track memory trend (keep last 10 readings)
+    table.insert(_G.MemoryTrend, 1, currentMemoryMB)
+    if #_G.MemoryTrend > 10 then
+        table.remove(_G.MemoryTrend)
+    end
+    
+    -- Calculate average trend
+    local avgTrend = 0
+    for _, v in ipairs(_G.MemoryTrend) do
+        avgTrend = avgTrend + v
+    end
+    avgTrend = avgTrend / #_G.MemoryTrend
+    
+    -- Memory status notification
+    local status = "Normal"
+    if currentMemoryMB > _G.MemoryCriticalMB then
+        status = "CRITICAL"
+    elseif currentMemoryMB > _G.MemoryThresholdMB then
+        status = "High"
+    end
+    
+    -- Aggressive cleanup if above threshold
+    if currentMemoryMB > _G.MemoryThresholdMB then
+        -- Phase 1: Standard cleanup
+        local cleaned = DeepCleanupInstances()
+        cleaned = cleaned + CleanupCharacters()
+        ClearUnusedReferences()
+        
+        -- Phase 2: Aggressive cleanup if critical
+        if currentMemoryMB > _G.MemoryCriticalMB then
+            -- Disable all particles globally
+            for _, emitter in pairs(Workspace:GetDescendants()) do
+                if emitter:IsA("ParticleEmitter") or emitter:IsA("Trail") or emitter:IsA("Beam") then
+                    emitter.Enabled = false
+                end
+            end
+            
+            -- Reduce texture quality further
+            settings().Rendering.TextureQuality = 0
+            
+            -- Lower streaming radius if streaming enabled
+            if Workspace.StreamingEnabled then
+                -- Request stream out for distant objects
+                local char = player.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") then
+                            local distance = (obj.Position - hrp.Position).Magnitude
+                            if distance > 500 then
+                                obj.StreamingMode = Enum.StreamingMode.LowPriority
+                            end
+                        end
+                    end
+                end
+            end
+            
+            Library:Notify({
+                Title = "Memory Critical",
+                Content = string.format("Emergency cleanup! Memory: %.0f MB", currentMemoryMB),
+                Duration = 3
+            })
+        else
+            if cleaned > 0 then
+                Library:Notify({
+                    Title = "Memory Optimized",
+                    Content = string.format("Cleaned %d objects. Memory: %.0f MB", cleaned, currentMemoryMB),
+                    Duration = 2
+                })
+            end
+        end
+    end
+    
+    return status, currentMemoryMB, totalMemoryMB
+end
+
+-- Start memory optimization loop
+task.spawn(function()
+    while true do
+        if _G.MemoryOptimizerEnabled then
+            local status, luaMem, totalMem = CheckAndOptimizeMemory()
+            
+            -- Update UI if tab is open
+            if _G.MemoryStatusLabel then
+                _G.MemoryStatusLabel:SetTitle(string.format("Status: %s", status))
+                _G.MemoryStatusLabel:SetContent(string.format("Lua: %.0f MB | Total: %.0f MB", luaMem, totalMem))
+            end
+        end
+        wait(_G.MemoryCleanupInterval)
+    end
+end)
+
+-- ==================== HOME TAB ====================
+HomeTab:AddParagraph({Title = "Main Features", Content = "Essential game functions"})
+
+HomeTab:AddButton({
+    Title = "Restock Shop",
+    Description = "Restock all shop items",
+    Callback = function()
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("restock"):InvokeServer()
+        Library:Notify({Title = "Success", Content = "Shop restocked!", Duration = 3})
+    end
+})
+
+HomeTab:AddButton({
+    Title = "Claim All Rewards",
+    Description = "Claim all available rewards",
+    Callback = function()
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("claimAll"):InvokeServer()
+        Library:Notify({Title = "Success", Content = "All rewards claimed!", Duration = 3})
+    end
+})
+
+HomeTab:AddButton({
+    Title = "Place Best Baddies",
+    Description = "Auto place best units",
+    Callback = function()
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("PlaceBestBaddies"):InvokeServer()
+        Library:Notify({Title = "Success", Content = "Best baddies placed!", Duration = 3})
+    end
+})
+
+-- ==================== DICE SHOP TAB ====================
+DiceTab:AddParagraph({Title = "Auto Buy Dice", Content = "Select dice to auto purchase"})
+
+_G.SelectedDice = {}
+
+local diceOptions = {
+    "Kraken Dice",
+    "Seraphic Dice",
+    "Galactic Dice", 
+    "Eldritch Dice",
+    "Emperor Dice",
+    "Annihilation Dice",
+    "Disaster Dice",
+    "Limbo Dice",
+    "Chronos Dice",
+    "Yinyang Dice",
+    "Impossible Dice"
+}
+
+local diceConfig = {
+    ["Kraken Dice"] = { name = "Kraken Dice", amount = 99, type = "dice" },
+    ["Seraphic Dice"] = { name = "Seraphic Dice", amount = 99, type = "dice" },
+    ["Galactic Dice"] = { name = "Galactic Dice", amount = 99, type = "dice" },
+    ["Eldritch Dice"] = { name = "Eldritch Dice", amount = 99, type = "dice", special = "update" },
+    ["Emperor Dice"] = { name = "Emperor Dice", amount = 99, type = "dice" },
+    ["Annihilation Dice"] = { name = "Annihilation Dice", amount = 99, type = "dice" },
+    ["Disaster Dice"] = { name = "Disaster Dice", amount = 99, type = "dice" },
+    ["Limbo Dice"] = { name = "Limbo Dice", amount = 99, type = "dice" },
+    ["Chronos Dice"] = { name = "Chronos Dice", amount = 99, type = "dice" },
+    ["Yinyang Dice"] = { name = "Yinyang Dice", amount = 99, type = "dice" },
+    ["Impossible Dice"] = { name = "Impossible Dice", amount = 99, type = "dice" }
+}
+
+DiceTab:AddDropdown("SelectedDiceDropdown", {
+    Title = "Select Dice to Auto Buy",
+    Description = "Select multiple dice",
+    Values = diceOptions,
+    Multi = true,
+    Default = {},
+    Callback = function(Value)
+        _G.SelectedDice = Value
+    end
+})
+
+_G.AutoBuyDice = false
+DiceTab:AddToggle("AutoBuyDiceToggle", {
+    Title = "Auto Buy Selected Dice",
+    Description = "Automatically buy selected dice",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoBuyDice = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoBuyDice do
+                    for diceName, isSelected in pairs(_G.SelectedDice) do
+                        if isSelected and diceConfig[diceName] then
+                            local config = diceConfig[diceName]
+                            local args
+                            
+                            if config.special == "update" then
+                                args = { config.name }
+                                ReplicatedStorage:WaitForChild("Events"):WaitForChild("updateRollingDice"):FireServer(unpack(args))
+                            else
+                                args = { config.name, config.amount, config.type }
+                                ReplicatedStorage:WaitForChild("Events"):WaitForChild("buy"):InvokeServer(unpack(args))
+                            end
+                            wait(0.5)
+                        end
+                    end
+                    wait(2)
+                end
+            end)
+        end
+    end
+})
+
+-- ==================== POTIONS TAB ====================
+PotionsTab:AddParagraph({Title = "Auto Buy/Equip Potions", Content = "Select potions to auto manage"})
+
+_G.SelectedPotions = {}
+
+local potionOptions = {
+    "Luck Potion 3",
+    "No Consume Dice Potion 1",
+    "Mutation Chance Potion 1",
+    "Money Potion 3"
+}
+
+local potionConfig = {
+    ["Luck Potion 3"] = { name = "Luck Potion 3", amount = 4, type = "potion", action = "buy" },
+    ["No Consume Dice Potion 1"] = { name = "No Consume Dice Potion 1", amount = 8, type = "potion", action = "buy" },
+    ["Mutation Chance Potion 1"] = { name = "Mutation Chance Potion 1", amount = 4, type = "potion", action = "buy" },
+    ["Money Potion 3"] = { name = "Money Potion 3", amount = false, type = nil, action = "equip" }
+}
+
+PotionsTab:AddDropdown("SelectedPotionsDropdown", {
+    Title = "Select Potions",
+    Description = "Select multiple potions",
+    Values = potionOptions,
+    Multi = true,
+    Default = {},
+    Callback = function(Value)
+        _G.SelectedPotions = Value
+    end
+})
+
+_G.AutoBuyPotions = false
+PotionsTab:AddToggle("AutoBuyPotionsToggle", {
+    Title = "Auto Buy/Equip Selected",
+    Description = "Automatically buy/equip selected potions",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoBuyPotions = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoBuyPotions do
+                    for potionName, isSelected in pairs(_G.SelectedPotions) do
+                        if isSelected and potionConfig[potionName] then
+                            local config = potionConfig[potionName]
+                            local args
+                            
+                            if config.action == "equip" then
+                                args = { config.name, config.amount }
+                                ReplicatedStorage:WaitForChild("Events"):WaitForChild("equip"):InvokeServer(unpack(args))
+                            else
+                                args = { config.name, config.amount, config.type }
+                                ReplicatedStorage:WaitForChild("Events"):WaitForChild("buy"):InvokeServer(unpack(args))
+                            end
+                            wait(0.5)
+                        end
+                    end
+                    wait(2)
+                end
+            end)
+        end
+    end
+})
+
+-- ==================== REBIRTH TAB ====================
+RebirthTab:AddParagraph({Title = "Rebirth Features", Content = "Rebirth controls"})
+
+RebirthTab:AddButton({
+    Title = "Rebirth",
+    Description = "Perform rebirth",
+    Callback = function()
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("rebirth"):InvokeServer()
+        Library:Notify({Title = "Success", Content = "Rebirth completed!", Duration = 3})
+    end
+})
+
+-- ==================== ROLLING TAB ====================
+RollingTab:AddParagraph({Title = "Rolling Features", Content = "Dice rolling controls"})
+
+RollingTab:AddButton({
+    Title = "Roll Dice",
+    Description = "Roll your current dice",
+    Callback = function()
+        player:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Dice"):WaitForChild("RollState"):InvokeServer()
+    end
+})
+
+RollingTab:AddButton({
+    Title = "Spin Wheel",
+    Description = "Request spin",
+    Callback = function()
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("spinrequest"):InvokeServer()
+    end
+})
+
+RollingTab:AddButton({
+    Title = "Get Angel Egg",
+    Description = "Get 1 Angel Egg pet",
+    Callback = function()
+        local args = { "AngelEgg", 1 }
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("RegularPet"):InvokeServer(unpack(args))
+    end
+})
+
+-- ==================== MERCHANT TAB ====================
+MerchantTab:AddParagraph({Title = "Auto Buy All", Content = "Automatically purchase merchant items"})
+
+_G.AutoBuyMerchant = false
+MerchantTab:AddToggle("AutoBuyMerchantToggle", {
+    Title = "Auto Buy All Merchant Items",
+    Description = "Automatically buy all 6 merchant slots",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoBuyMerchant = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoBuyMerchant do
+                    pcall(function()
+                        for i = 1, 6 do
+                            local args = { i }
+                            ReplicatedStorage:WaitForChild("Events"):WaitForChild("MerchantBuy"):InvokeServer(unpack(args))
+                            wait(0.5)
+                        end
+                    end)
+                    wait(3)
+                end
+            end)
+        end
+    end
+})
+
+-- ==================== QUESTS TAB ====================
+QuestsTab:AddParagraph({Title = "Auto Claim All", Content = "Automatically claim quest rewards"})
+
+_G.AutoClaimQuests = false
+QuestsTab:AddToggle("AutoClaimQuestsToggle", {
+    Title = "Auto Claim All Quest Rewards",
+    Description = "Automatically claim all 6 quest reward slots",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoClaimQuests = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoClaimQuests do
+                    pcall(function()
+                        for i = 1, 6 do
+                            local args = { "ClaimReward", i }
+                            ReplicatedStorage:WaitForChild("Events"):WaitForChild("QuestRemote"):InvokeServer(unpack(args))
+                            wait(0.5)
+                        end
+                    end)
+                    wait(5)
+                end
+            end)
+        end
+    end
+})
+
+-- ==================== MISC TAB ====================
+MiscTab:AddParagraph({Title = "Auto Features", Content = "Automation controls"})
+
+_G.AutoRoll = false
+MiscTab:AddToggle("AutoRollToggle", {
+    Title = "Auto Roll",
+    Description = "Automatically roll dice",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoRoll = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoRoll do
+                    pcall(function()
+                        player:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Dice"):WaitForChild("RollState"):InvokeServer()
+                    end)
+                    wait(1.5)
+                end
+            end)
+        end
+    end
+})
+
+_G.AutoSpin = false
+MiscTab:AddToggle("AutoSpinToggle", {
+    Title = "Auto Spin",
+    Description = "Automatically request spins",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoSpin = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoSpin do
+                    pcall(function()
+                        ReplicatedStorage:WaitForChild("Events"):WaitForChild("spinrequest"):InvokeServer()
+                    end)
+                    wait(5)
+                end
+            end)
+        end
+    end
+})
+
+_G.AutoRebirth = false
+MiscTab:AddToggle("AutoRebirthToggle", {
+    Title = "Auto Rebirth",
+    Description = "Automatically rebirth",
+    Default = false,
+    Callback = function(Value)
+         _G.AutoRebirth = Value
+        task.spawn(function()
+            while _G.AutoRebirth do
+                pcall(function()
+                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("rebirth"):InvokeServer()
+                end)
+                wait(3)
+            end
+        end)
+    end
+})
+
+_G.AutoClaim = false
+MiscTab:AddToggle("AutoClaimToggle", {
+    Title = "Auto Claim All",
+    Description = "Automatically claim all rewards",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoClaim = Value
+        if Value then
+            task.spawn(function()
+                while _G.AutoClaim do
+                    pcall(function()
+                        ReplicatedStorage:WaitForChild("Events"):WaitForChild("claimAll"):InvokeServer()
+                    end)
+                    wait(10)
+                end
+            end)
+        end
+    end
+})
+
+-- FPS Boost & Low Graphics Section
+MiscTab:AddParagraph({Title = "Performance", Content = "Graphics optimization"})
+
+_G.FPSBoostEnabled = false
+MiscTab:AddToggle("FPSBoostToggle", {
+    Title = "FPS Boost / Low Graphics",
+    Description = "Disable effects for better performance",
+    Default = false,
+    Callback = function(Value)
+        _G.FPSBoostEnabled = Value
+        if Value then
+            -- Disable lighting effects
+            for _, v in pairs(Lighting:GetChildren()) do
+                if v:IsA("PostEffect") then
+                    v.Enabled = false
+                end
+            end
+            
+            -- Lower graphics settings
+            settings().Rendering.QualityLevel = 1
+            settings().Rendering.TextureQuality = 0
+            
+            -- Disable particles and reduce texture quality
+            for _, v in pairs(Workspace:GetDescendants()) do
+                if v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                    v.Enabled = false
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v.Transparency = 1
+                elseif v:IsA("BasePart") then
+                    v.Material = Enum.Material.Plastic
+                    v.Reflectance = 0
+                end
+            end
+            
+            -- Optimize characters
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr.Character then
+                    for _, part in pairs(plr.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.Material = Enum.Material.Plastic
+                            part.Reflectance = 0
+                        elseif part:IsA("Decal") or part:IsA("Texture") then
+                            part.Transparency = 1
+                        end
+                    end
+                end
+            end
+            
+            Library:Notify({Title = "FPS Boost", Content = "Low graphics mode enabled!", Duration = 3})
+        else
+            Library:Notify({Title = "FPS Boost", Content = "Rejoin to restore graphics", Duration = 3})
+        end
+    end
+})
+
+-- Anti-AFK Section
+MiscTab:AddParagraph({Title = "Anti-AFK", Content = "Prevent idle kicks"})
+
+_G.AntiAFKEnabled = false
+MiscTab:AddToggle("AntiAFKToggle", {
+    Title = "Anti-AFK",
+    Description = "Prevent getting kicked for being idle",
+    Default = false,
+    Callback = function(Value)
+        _G.AntiAFKEnabled = Value
+        if Value then
+            local vu = game:GetService("VirtualUser")
+            player.Idled:Connect(function()
+                if _G.AntiAFKEnabled then
+                    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                    wait(1)
+                    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                end
+            end)
+            
+            -- Additional anti-afk loop
+            task.spawn(function()
+                while _G.AntiAFKEnabled do
+                    pcall(function()
+                        local character = player.Character
+                        if character and character:FindFirstChild("HumanoidRootPart") then
+                            character.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0)
+                        end
+                    end)
+                    wait(30)
+                end
+            end)
+            
+            Library:Notify({Title = "Anti-AFK", Content = "Anti-AFK enabled!", Duration = 3})
+        end
+    end
+})
+
+-- ==================== MEMORY TAB ====================
+MemoryTab:AddParagraph({Title = "Memory Optimizer", Content = "Keep memory usage stable below 2000 MB"})
+
+-- Memory Status Display
+_G.MemoryStatusLabel = MemoryTab:AddParagraph({
+    Title = "Status: Monitoring...",
+    Content = "Lua: 0 MB | Total: 0 MB"
+})
+
+-- Memory Threshold Slider
+MemoryTab:AddSlider("MemoryThresholdSlider", {
+    Title = "Cleanup Threshold (MB)",
+    Description = "Start cleanup when memory exceeds this value",
+    Default = 1800,
+    Min = 1000,
+    Max = 1900,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.MemoryThresholdMB = Value
+    end
+})
+
+-- Critical Threshold Slider
+MemoryTab:AddSlider("MemoryCriticalSlider", {
+    Title = "Critical Threshold (MB)",
+    Description = "Emergency cleanup when memory exceeds this value",
+    Default = 1950,
+    Min = 1500,
+    Max = 1990,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.MemoryCriticalMB = Value
+    end
+})
+
+-- Cleanup Interval Slider
+MemoryTab:AddSlider("CleanupIntervalSlider", {
+    Title = "Check Interval (seconds)",
+    Description = "How often to check memory usage",
+    Default = 10,
+    Min = 5,
+    Max = 60,
+    Rounding = 0,
+    Callback = function(Value)
+        _G.MemoryCleanupInterval = Value
+    end
+})
+
+-- Main Memory Optimizer Toggle
+MemoryTab:AddToggle("MemoryOptimizerToggle", {
+    Title = "Enable Memory Optimizer",
+    Description = "Automatically maintain memory below 2000 MB",
+    Default = false,
+    Callback = function(Value)
+        _G.MemoryOptimizerEnabled = Value
+        if Value then
+            -- Initial cleanup
+            local cleaned = DeepCleanupInstances()
+            cleaned = cleaned + CleanupCharacters()
+            ClearUnusedReferences()
+            
+            Library:Notify({
+                Title = "Memory Optimizer",
+                Content = string.format("Activated! Cleaned %d objects initially.", cleaned),
+                Duration = 3
+            })
+        else
+            Library:Notify({
+                Title = "Memory Optimizer",
+                Content = "Deactivated. Memory no longer monitored.",
+                Duration = 3
+            })
+        end
+    end
+})
+
+-- Manual Cleanup Button
+MemoryTab:AddButton({
+    Title = "Manual Cleanup Now",
+    Description = "Force immediate memory cleanup",
+    Callback = function()
+        local cleaned = DeepCleanupInstances()
+        cleaned = cleaned + CleanupCharacters()
+        ClearUnusedReferences()
+        
+        local currentMB = gcinfo() / 1024
+        Library:Notify({
+            Title = "Manual Cleanup",
+            Content = string.format("Cleaned %d objects. Current: %.0f MB", cleaned, currentMB),
+            Duration = 3
+        })
+    end
+})
+
+-- Aggressive Mode Toggle
+MemoryTab:AddToggle("AggressiveModeToggle", {
+    Title = "Aggressive Mode",
+    Description = "More frequent checks and deeper cleanup",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            _G.MemoryCleanupInterval = 5
+            _G.MemoryThresholdMB = 1600
+            Library:Notify({
+                Title = "Aggressive Mode",
+                Content = "Memory checks every 5s, threshold 1600 MB",
+                Duration = 3
+            })
+        else
+            _G.MemoryCleanupInterval = 10
+            _G.MemoryThresholdMB = 1800
+        end
+    end
+})
+
+-- Select first tab
+Window:SelectTab(1)
+
+Library:Notify({
+    Title = "Script Loaded",
+    Content = "MARKYY x KYYY Hub is ready! Check Memory tab for optimizer.",
+    Duration = 5
+})
+
+print("Fluent UI Script with Memory Optimizer loaded successfully!")
