@@ -263,26 +263,26 @@ local diceOptions = {
     "Emperor Dice",
     "Annihilation Dice",
     "Disaster Dice",
+"Impossible Dice",
     "Limbo Dice",
     "Chronos Dice",
-    "Yinyang Dice",
-    "Impossible Dice"
+    "Yinyang Dice"
 }
 
 local diceConfig = {
-    ["Kraken Dice"] = { name = "Kraken Dice", amount = 99, type = "dice" },
-    ["Seraphic Dice"] = { name = "Seraphic Dice", amount = 99, type = "dice" },
-    ["Galactic Dice"] = { name = "Galactic Dice", amount = 99, type = "dice" },
-    ["Eldritch Dice"] = { name = "Eldritch Dice", amount = 99, type = "dice", special = "update" },
-    ["Emperor Dice"] = { name = "Emperor Dice", amount = 99, type = "dice" },
-    ["Annihilation Dice"] = { name = "Annihilation Dice", amount = 99, type = "dice" },
-    ["Disaster Dice"] = { name = "Disaster Dice", amount = 99, type = "dice" },
-    ["Limbo Dice"] = { name = "Limbo Dice", amount = 99, type = "dice" },
-    ["Chronos Dice"] = { name = "Chronos Dice", amount = 99, type = "dice" },
-    ["Yinyang Dice"] = { name = "Yinyang Dice", amount = 99, type = "dice" },
-    ["Impossible Dice"] = { name = "Impossible Dice", amount = 99, type = "dice" }
+    ["Kraken Dice"] = { name = "Kraken Dice", amount = 1, type = "dice" },
+    ["Seraphic Dice"] = { name = "Seraphic Dice", amount = 1, type = "dice" },
+    ["Galactic Dice"] = { name = "Galactic Dice", amount = 1, type = "dice" },
+    ["Eldritch Dice"] = { name = "Eldritch Dice", amount = 1, type = "dice", special = "update" },
+    ["Emperor Dice"] = { name = "Emperor Dice", amount = 1, type = "dice" },
+    ["Annihilation Dice"] = { name = "Annihilation Dice", amount = 1, type = "dice" },
+    ["Disaster Dice"] = { name = "Disaster Dice", amount = 1, type = "dice" },
+["Impossible Dice"] = { name = "Impossible Dice", amount = 1, type = "dice" },
+["Limbo Dice"] = { name = "Limbo Dice", amount = 1, type = "dice" },
+    ["Chronos Dice"] = { name = "Chronos Dice", amount = 1, type = "dice" },
+    ["Yinyang Dice"] = { name = "Yinyang Dice", amount = 1, type = "dice" }
 }
-
+    
 DiceTab:AddDropdown("SelectedDiceDropdown", {
     Title = "Select Dice to Auto Buy",
     Description = "Select multiple dice",
